@@ -36,16 +36,36 @@ endif()
 
 # ---------------------------------------------------------------------------
 # Monocypher (cryptography)
+#
+# Three ways to get it, in order of preference:
+#   1. -DAURORASECRET_MONOCYPHER_DIR=<checkout>  (a checkout or a bare pair)
+#   2. third_party/monocypher/                   (vendored, the normal source)
+#   3. a verified download into the build tree   (fallback)
+# The source file and the include directory are tracked separately, because a
+# Monocypher checkout keeps them in src/ while the vendored copy does not.
 # ---------------------------------------------------------------------------
-set(_aurora_monocypher_dir "")
+set(_aurora_monocypher_source "")
+set(_aurora_monocypher_include "")
 
-if(AURORASECRET_MONOCYPHER_DIR AND
-   EXISTS "${AURORASECRET_MONOCYPHER_DIR}/src/monocypher.c")
-  set(_aurora_monocypher_dir "${AURORASECRET_MONOCYPHER_DIR}")
-  message(STATUS "Monocypher: using ${_aurora_monocypher_dir}")
+if(AURORASECRET_MONOCYPHER_DIR)
+  if(EXISTS "${AURORASECRET_MONOCYPHER_DIR}/src/monocypher.c")
+    set(_aurora_monocypher_source "${AURORASECRET_MONOCYPHER_DIR}/src/monocypher.c")
+    set(_aurora_monocypher_include "${AURORASECRET_MONOCYPHER_DIR}/src")
+  elseif(EXISTS "${AURORASECRET_MONOCYPHER_DIR}/monocypher.c")
+    set(_aurora_monocypher_source "${AURORASECRET_MONOCYPHER_DIR}/monocypher.c")
+    set(_aurora_monocypher_include "${AURORASECRET_MONOCYPHER_DIR}")
+  else()
+    message(FATAL_ERROR
+      "-DAURORASECRET_MONOCYPHER_DIR=${AURORASECRET_MONOCYPHER_DIR} does not "
+      "contain monocypher.c (neither at its root nor in src/).")
+  endif()
+  message(STATUS "Monocypher: using ${_aurora_monocypher_source}")
 elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/third_party/monocypher/monocypher.c")
-  set(_aurora_monocypher_dir "${CMAKE_CURRENT_SOURCE_DIR}/third_party/monocypher")
-  message(STATUS "Monocypher: using the vendored copy in third_party/")
+  set(_aurora_monocypher_source
+      "${CMAKE_CURRENT_SOURCE_DIR}/third_party/monocypher/monocypher.c")
+  set(_aurora_monocypher_include
+      "${CMAKE_CURRENT_SOURCE_DIR}/third_party/monocypher")
+  message(STATUS "Monocypher: using the vendored copy in third_party/monocypher/")
 elseif(AURORASECRET_FETCH_MONOCYPHER)
   set(_aurora_monocypher_dir "${CMAKE_BINARY_DIR}/_deps/monocypher")
   set(_aurora_monocypher_roots
@@ -123,6 +143,8 @@ elseif(AURORASECRET_FETCH_MONOCYPHER)
       "Vendor the sources in third_party/monocypher/ or point "
       "-DAURORASECRET_MONOCYPHER_DIR at a valid checkout.")
   endif()
+  set(_aurora_monocypher_source "${_aurora_monocypher_dir}/src/monocypher.c")
+  set(_aurora_monocypher_include "${_aurora_monocypher_dir}/src")
   message(STATUS "Monocypher ${AURORASECRET_MONOCYPHER_VERSION}: downloaded into ${_aurora_monocypher_dir}")
 else()
   message(FATAL_ERROR
@@ -132,8 +154,8 @@ else()
     "access.")
 endif()
 
-add_library(monocypher STATIC "${_aurora_monocypher_dir}/src/monocypher.c")
-target_include_directories(monocypher PUBLIC "${_aurora_monocypher_dir}/src")
+add_library(monocypher STATIC "${_aurora_monocypher_source}")
+target_include_directories(monocypher PUBLIC "${_aurora_monocypher_include}")
 set_target_properties(monocypher PROPERTIES
   C_STANDARD 99
   POSITION_INDEPENDENT_CODE ON)
