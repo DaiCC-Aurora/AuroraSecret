@@ -80,7 +80,9 @@ fs::path prepare_target(const fs::path& destination,
                                 fsutil::path_to_utf8(current));
       }
     } else if (!dry_run) {
-      if (!fs::create_directory(current, ec) && ec) {
+      // create_directories, not create_directory: an archive may list
+      // "a/b/c" without entries for "a" and "a/b".
+      if (!fs::create_directories(current, ec) && ec) {
         fail(ExitCode::kIo, "cannot create directory '" +
                                 fsutil::path_to_utf8(current) +
                                 "': " + ec.message());
@@ -276,6 +278,24 @@ ExtractStats extract_archive(ContainerReader& reader,
                              const ExtractOptions& options) {
   ExtractStats stats;
   std::vector<Entry> deferred_metadata;
+
+  // The destination is created here rather than by the caller, so that
+  // extracting into a directory that does not exist yet just works. A dry run
+  // must not touch the file system at all.
+  if (!options.dry_run) {
+    if (options.destination.empty()) {
+      fail(ExitCode::kInternal, "no destination directory was given");
+    }
+    std::error_code create_error;
+    fs::create_directories(options.destination, create_error);
+    std::error_code check_error;
+    if (!fs::is_directory(options.destination, check_error)) {
+      fail(ExitCode::kIo, "cannot create the destination directory '" +
+                              fsutil::path_to_utf8(options.destination) + "': " +
+                              (create_error ? create_error.message()
+                                            : std::string("not a directory")));
+    }
+  }
 
   Entry entry;
   while (reader.next_entry(entry)) {

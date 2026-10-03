@@ -351,16 +351,9 @@ int command_decrypt(const Options& options) {
   const SecureString password = resolve_password(options.password, false);
   const std::vector<uint8_t> key_file = read_key_file(options.password.key_file);
 
-  if (!options.dry_run) {
-    std::error_code ec;
-    fs::create_directories(destination, ec);
-    if (ec) {
-      fail(ExitCode::kIo, "cannot create the destination directory '" +
-                              fsutil::path_to_utf8(destination) +
-                              "': " + ec.message());
-    }
-  }
-
+  // The destination directory is created by extract_archive(), once the header
+  // has authenticated: a wrong password must not leave an empty directory
+  // behind.
   ExtractOptions extract_options;
   extract_options.destination = fsutil::absolute_lexical(destination);
   extract_options.overwrite = options.force;
