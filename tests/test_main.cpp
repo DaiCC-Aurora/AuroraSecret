@@ -16,7 +16,7 @@
 #include "crypto.h"
 #include "extract.h"
 #include "fsutil.h"
-#include "io.h"
+#include "fileio.h"
 #include "util.h"
 #include "walk.h"
 
@@ -184,7 +184,10 @@ void create_sample_tree(const fs::path& root) {
   write_file(root / "hello.txt", "hello world\n");
   write_file(root / "empty.bin", "");
   write_file(root / "sub" / "big.bin", pseudo_random_bytes(3 * 1024 * 1024 + 1234));
-  write_file(root / "sub" / "unicode-\xE6\x97\xA5\xE6\x9C\xAC\xE8\xAA\x9E.txt",
+  // path_from_utf8 so the file really is called that on Windows too: an
+  // fs::path built from a narrow literal uses the ANSI code page there.
+  write_file(root / "sub" /
+                 fsutil::path_from_utf8("unicode-\xE6\x97\xA5\xE6\x9C\xAC\xE8\xAA\x9E.txt"),
              "unicode payload\n");
   std::error_code ec;
   fs::create_directories(root / "emptydir", ec);

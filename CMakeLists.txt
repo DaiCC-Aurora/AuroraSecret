@@ -174,7 +174,7 @@ add_library(aurorasecret_core STATIC
   src/crypto.cpp
   src/extract.cpp
   src/fsutil.cpp
-  src/io.cpp
+  src/fileio.cpp
   src/log.cpp
   src/password.cpp
   src/random.cpp

@@ -1,4 +1,4 @@
-#include "io.h"
+#include "fileio.h"
 
 #include <cerrno>
 #include <cstring>
@@ -16,6 +16,7 @@ std::string system_error_message() {
 std::FILE* open_binary(const fs::path& path, const wchar_t* wide_mode,
                        const char* narrow_mode) {
 #if defined(_WIN32)
+  (void)narrow_mode;
   return _wfopen(path.wstring().c_str(), wide_mode);
 #else
   (void)wide_mode;

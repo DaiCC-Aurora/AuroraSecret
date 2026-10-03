@@ -8,9 +8,10 @@
 #include <ctime>
 
 #if defined(_WIN32)
-#  define WIN32_LEAN_AND_MEAN
+#  ifndef WIN32_LEAN_AND_MEAN
+#    define WIN32_LEAN_AND_MEAN
+#  endif
 #  include <windows.h>
-#  include <io.h>
 #else
 #  include <unistd.h>
 #endif
@@ -146,9 +147,24 @@ bool glob_match(const std::string& pattern, const std::string& text) {
   return p == pattern.size();
 }
 
+#if defined(_WIN32)
+// A handle supports console mode only when it really is a console, which also
+// covers `cmd < file` and pipes. This deliberately avoids the CRT's _isatty()
+// and any dependency on <io.h> (a project header of that name used to shadow
+// the system one).
+bool is_console_handle(DWORD which) {
+  const HANDLE handle = ::GetStdHandle(which);
+  if (handle == nullptr || handle == INVALID_HANDLE_VALUE) {
+    return false;
+  }
+  DWORD mode = 0;
+  return ::GetConsoleMode(handle, &mode) != 0;
+}
+#endif
+
 bool is_tty_stdin() {
 #if defined(_WIN32)
-  return _isatty(_fileno(stdin)) != 0;
+  return is_console_handle(STD_INPUT_HANDLE);
 #else
   return isatty(STDIN_FILENO) != 0;
 #endif
@@ -156,7 +172,7 @@ bool is_tty_stdin() {
 
 bool is_tty_stderr() {
 #if defined(_WIN32)
-  return _isatty(_fileno(stderr)) != 0;
+  return is_console_handle(STD_ERROR_HANDLE);
 #else
   return isatty(STDERR_FILENO) != 0;
 #endif

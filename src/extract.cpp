@@ -7,7 +7,7 @@
 
 #include "crypto.h"
 #include "fsutil.h"
-#include "io.h"
+#include "fileio.h"
 #include "log.h"
 #include "util.h"
 

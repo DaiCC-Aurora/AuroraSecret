@@ -9,7 +9,7 @@
 #include "container.h"
 #include "extract.h"
 #include "fsutil.h"
-#include "io.h"
+#include "fileio.h"
 #include "log.h"
 #include "password.h"
 #include "util.h"

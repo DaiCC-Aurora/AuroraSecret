@@ -252,7 +252,7 @@ src/aurora.h                   common types and the error/exit code model
 src/util.*                     little endian codec, glob, formatting
 src/random.*                   operating system entropy
 src/crypto.*                   Monocypher wrappers (the only crypto code)
-src/io.*                       checked binary file I/O
+src/fileio.*                       checked binary file I/O
 src/fsutil.*                   UTF-8 paths, archive path safety, timestamps
 src/entry.h                    one archive entry
 src/walk.*                     input tree -> flat entry list

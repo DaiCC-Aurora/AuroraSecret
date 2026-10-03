@@ -20,7 +20,7 @@
 #include "aurora.h"
 #include "crypto.h"
 #include "entry.h"
-#include "io.h"
+#include "fileio.h"
 
 namespace aurora {
 
