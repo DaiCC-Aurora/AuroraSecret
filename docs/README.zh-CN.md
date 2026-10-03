@@ -27,8 +27,9 @@ aurorasecret decrypt Documents.asf -o restored/
 
 ## 编译
 
-需要 CMake 3.16+、支持 C++17 的编译器（MSVC 2019+ / GCC 9+ / Clang 10+ / AppleClang 12+），
-首次配置时需要网络（下载 Monocypher）。
+需要 CMake 3.16+、支持 C++17 的编译器（MSVC 2019+ / GCC 9+ / Clang 10+ / AppleClang 12+）。
+除此之外不需要装任何东西，也不需要联网：Monocypher 4.0.2 已随仓库放在
+`third_party/monocypher/` 下。
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -47,8 +48,10 @@ ctest --test-dir build -C Release --output-on-failure
 Linux 完全静态二进制：加 `-DAURORASECRET_LINUX_STATIC=ON`。
 macOS 通用二进制：加 `-DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"`。
 
-离线编译：把 Monocypher 的 `monocypher.c`、`monocypher.h` 放进 `third_party/monocypher/`，
-或者用 `-DAURORASECRET_MONOCYPHER_DIR=<Monocypher 目录>`。
+密码学库：`third_party/monocypher/` 里内置了 Monocypher 4.0.2
+（BSD-2-Clause / CC0 双许可），构建完全离线，且校验和已记录在该目录的
+`README.md` 中。如果这两个文件缺失，CMake 会去 GitHub 下载并按 SHA256
+校验；也可以用 `-DAURORASECRET_MONOCYPHER_DIR=<Monocypher 目录>` 指定其他副本。
 
 ## 用法
 

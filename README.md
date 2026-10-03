@@ -31,7 +31,8 @@ aurorasecret decrypt Documents.asf -o restored/
 * **Cross platform** — one code base for Windows, Linux and macOS, with UTF-8
   path handling everywhere (including the Windows wide command line).
 * **No dependencies to install** — apart from a C++17 compiler and CMake, the
-  only library is fetched at configure time (or vendored, see below).
+  only library is the vendored, single file Monocypher 4.0.2; the build never
+  needs network access.
 
 ## Cryptography
 
@@ -60,9 +61,9 @@ Things a user should know:
 
 ## Building
 
-Requirements: CMake 3.16 or newer, a C++17 compiler (MSVC 2019+, GCC 9+,
-Clang 10+, or AppleClang 12+), and network access on the first configure so that
-Monocypher can be downloaded.
+Requirements: CMake 3.16 or newer and a C++17 compiler (MSVC 2019+, GCC 9+,
+Clang 10+, or AppleClang 12+). Nothing else has to be installed, and no network
+access is needed: Monocypher 4.0.2 is vendored in `third_party/monocypher/`.
 
 ```bash
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
@@ -95,26 +96,29 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES="x86_64
 | Option | Default | Meaning |
 |--------|---------|---------|
 | `AURORASECRET_BUILD_TESTS` | `ON` | Build and register the test suite |
-| `AURORASECRET_FETCH_MONOCYPHER` | `ON` | Download Monocypher when it is not vendored |
+| `AURORASECRET_FETCH_MONOCYPHER` | `ON` | Download Monocypher when the vendored copy is missing |
 | `AURORASECRET_MONOCYPHER_VERSION` | `4.0.2` | Version to download |
-| `AURORASECRET_MONOCYPHER_DIR` | *(empty)* | Use an existing Monocypher checkout |
+| `AURORASECRET_MONOCYPHER_DIR` | *(empty)* | Use another Monocypher checkout instead |
 | `AURORASECRET_MSVC_STATIC_RUNTIME` | `OFF` | Link the MSVC runtime statically |
 | `AURORASECRET_LINUX_STATIC` | `OFF` | Produce a fully static Linux binary |
 | `AURORASECRET_WARNINGS_AS_ERRORS` | `OFF` | Turn compiler warnings into errors |
 
-### Building without network access
+### The cryptography dependency
 
-Put `monocypher.c` and `monocypher.h` from
-<https://github.com/LoupVaillant/Monocypher> (tag `4.0.2`) into
-`third_party/monocypher/`, or point the build at a checkout:
+`third_party/monocypher/` holds Monocypher 4.0.2 (BSD-2-Clause OR CC0-1.0) with
+the exact checksums recorded in its `README.md`. The build uses that copy, so a
+fresh clone builds offline and always against the reviewed code.
+
+If those files are missing, CMake downloads them from GitHub and verifies the
+pinned SHA256 sums. To build against a different checkout instead:
 
 ```bash
 git clone --depth 1 --branch 4.0.2 https://github.com/LoupVaillant/Monocypher
 cmake -S . -B build -DAURORASECRET_MONOCYPHER_DIR=$PWD/Monocypher
 ```
 
-Those two files are listed in `.gitignore`; remove those lines if you prefer to
-vendor the library inside the repository instead of downloading it.
+To update the vendored version, replace both files, update the checksums in
+`CMakeLists.txt` and in `third_party/monocypher/README.md`.
 
 ## Usage
 
@@ -258,6 +262,7 @@ src/password.*                 password resolution and secure storage
 src/log.*                      logging, progress line, console setup
 src/cli.*, src/main.cpp        command line interface
 tests/                         unit tests and the end to end CLI test
+third_party/monocypher/        vendored Monocypher 4.0.2 (BSD-2-Clause / CC0)
 docs/FORMAT.md                 byte level container specification
 docs/README.zh-CN.md           中文说明
 ```

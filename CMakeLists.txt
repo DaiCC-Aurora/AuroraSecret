@@ -51,9 +51,25 @@ elseif(AURORASECRET_FETCH_MONOCYPHER)
   set(_aurora_monocypher_roots
       "https://raw.githubusercontent.com/LoupVaillant/Monocypher/${AURORASECRET_MONOCYPHER_VERSION}"
       "https://github.com/LoupVaillant/Monocypher/raw/${AURORASECRET_MONOCYPHER_VERSION}")
+
+  # Known good checksums, so a proxy or an error page cannot slip through.
+  set(_aurora_monocypher_sha256_c "")
+  set(_aurora_monocypher_sha256_h "")
+  if(AURORASECRET_MONOCYPHER_VERSION STREQUAL "4.0.2")
+    set(_aurora_monocypher_sha256_c
+        "02174117935699d418443c75a558a287deb06ef8cf7c1adced61d9047d2f323d")
+    set(_aurora_monocypher_sha256_h
+        "fcaf6ed771358bb4f40fba016f6518ae86ec02b1b877d2cc35ad92d3a26fd7b3")
+  endif()
+
   foreach(_file IN ITEMS src/monocypher.c src/monocypher.h)
     if(EXISTS "${_aurora_monocypher_dir}/${_file}")
       continue()
+    endif()
+    if(_file STREQUAL "src/monocypher.c")
+      set(_expected_sha256 "${_aurora_monocypher_sha256_c}")
+    else()
+      set(_expected_sha256 "${_aurora_monocypher_sha256_h}")
     endif()
     file(MAKE_DIRECTORY "${_aurora_monocypher_dir}/src")
     set(_downloaded FALSE)
@@ -67,20 +83,31 @@ elseif(AURORASECRET_FETCH_MONOCYPHER)
       list(GET _download_status 0 _download_code)
       if(_download_code EQUAL 0 AND EXISTS "${_aurora_monocypher_dir}/${_file}")
         file(SIZE "${_aurora_monocypher_dir}/${_file}" _download_size)
-        if(_download_size GREATER 1000)
+        if(_download_size LESS 1000)
+          message(STATUS "  rejected: only ${_download_size} bytes, probably an error page")
+        elseif(_expected_sha256)
+          file(SHA256 "${_aurora_monocypher_dir}/${_file}" _actual_sha256)
+          if(_actual_sha256 STREQUAL _expected_sha256)
+            set(_downloaded TRUE)
+          else()
+            message(STATUS "  rejected: checksum ${_actual_sha256} does not match")
+          endif()
+        else()
           set(_downloaded TRUE)
         endif()
+      else()
+        list(GET _download_status 1 _download_message)
+        message(STATUS "  rejected: ${_download_message}")
       endif()
       if(NOT _downloaded)
-        list(GET _download_status 1 _download_message)
-        message(STATUS "  download failed: ${_download_message}")
         file(REMOVE "${_aurora_monocypher_dir}/${_file}")
       endif()
     endforeach()
     if(NOT _downloaded)
       message(FATAL_ERROR
-        "Could not download ${_file} from GitHub.\n"
-        "Either build with network access, or vendor the sources:\n"
+        "Could not download a verified ${_file} from GitHub.\n"
+        "The vendored copy under third_party/monocypher/ is the normal source;\n"
+        "restore it, or fetch the sources yourself:\n"
         "  git clone --depth 1 --branch ${AURORASECRET_MONOCYPHER_VERSION} "
         "https://github.com/LoupVaillant/Monocypher\n"
         "  copy src/monocypher.c and src/monocypher.h into third_party/monocypher/\n"
@@ -90,7 +117,7 @@ elseif(AURORASECRET_FETCH_MONOCYPHER)
 
   file(READ "${_aurora_monocypher_dir}/src/monocypher.h" _monocypher_header LIMIT 200000)
   if(NOT _monocypher_header MATCHES "crypto_aead_lock" OR
-     NOT _monocypher_header MATCHES "crypto_argon2i")
+     NOT _monocypher_header MATCHES "crypto_argon2")
     message(FATAL_ERROR
       "The downloaded monocypher.h does not look like Monocypher 4.x. "
       "Vendor the sources in third_party/monocypher/ or point "
@@ -136,6 +163,12 @@ target_include_directories(aurorasecret_core
   PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(aurorasecret_core PRIVATE monocypher)
 set_target_properties(aurorasecret_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+if(WIN32)
+  # BCryptGenRandom lives in random.cpp, so every consumer (the executable and
+  # the test binary) needs the library.
+  target_link_libraries(aurorasecret_core PUBLIC bcrypt)
+endif()
 
 if(MSVC)
   target_compile_options(aurorasecret_core PRIVATE /W4 /permissive- /utf-8)
@@ -186,7 +219,8 @@ add_executable(aurorasecret src/main.cpp)
 target_link_libraries(aurorasecret PRIVATE aurorasecret_core)
 
 if(WIN32)
-  target_link_libraries(aurorasecret PRIVATE bcrypt shell32)
+  # CommandLineToArgvW, used by main.cpp only.
+  target_link_libraries(aurorasecret PRIVATE shell32)
 endif()
 
 if(UNIX AND NOT APPLE AND AURORASECRET_LINUX_STATIC)

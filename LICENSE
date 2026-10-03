@@ -23,5 +23,6 @@ SOFTWARE.
 --------------------------------------------------------------------------
 
 This project uses Monocypher (https://monocypher.org) for all cryptography.
-Monocypher is dual licensed under CC0-1.0 and BSD-2-Clause and is downloaded
-at configure time (or supplied with -DAURORASECRET_MONOCYPHER_DIR).
+Monocypher 4.0.2 is vendored in third_party/monocypher/ and is dual licensed
+under CC0-1.0 and BSD-2-Clause; when those files are missing the build fetches
+them from GitHub and verifies pinned SHA256 checksums.

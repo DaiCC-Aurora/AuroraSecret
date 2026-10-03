@@ -20,10 +20,6 @@ compile_commands.json
 *.suo
 *.swp
 
-# Vendored cryptography (downloaded automatically when missing)
-third_party/monocypher/monocypher.c
-third_party/monocypher/monocypher.h
-
 # Archives produced while testing
 *.asf
 *.aurorasecret-part-*

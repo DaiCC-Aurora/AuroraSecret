@@ -6,7 +6,8 @@
 #include "random.h"
 #include "util.h"
 
-// Monocypher 4.x. Fetched at configure time (or supplied through
+// Monocypher 4.0.2. Vendored in third_party/monocypher/ and, when that copy is
+// missing, downloaded at configure time (or supplied through
 // -DAURORASECRET_MONOCYPHER_DIR); see CMakeLists.txt.
 extern "C" {
 #include "monocypher.h"
@@ -56,14 +57,27 @@ Key derive_key(const std::string& password, const Salt& salt, uint32_t blocks,
   if (passes < 1) {
     fail(ExitCode::kUsage, "Argon2 requires at least one pass");
   }
-  // Argon2 work area: one kibibyte per block.
+  // Argon2 work area: one kibibyte per block (Monocypher's `blk` is 1 KiB).
   std::vector<uint8_t> work_area(static_cast<size_t>(blocks) * 1024u, 0);
+
+  // Monocypher 4.x derives every Argon2 variant through one entry point.
+  const crypto_argon2_config config = {
+      CRYPTO_ARGON2_I,   // algorithm: Argon2i, the data independent variant
+      blocks,            // memory hardness, in 1 KiB blocks
+      passes,            // time hardness
+      1                  // lanes: single threaded
+  };
+  const crypto_argon2_inputs inputs = {
+      reinterpret_cast<const uint8_t*>(password.data()),
+      salt.data(),
+      static_cast<uint32_t>(password.size()),
+      static_cast<uint32_t>(salt.size())
+  };
+  const crypto_argon2_extras extras = crypto_argon2_no_extras;
+
   Key key{};
-  crypto_argon2i(key.data(), static_cast<uint32_t>(key.size()), work_area.data(),
-                 blocks, passes,
-                 reinterpret_cast<const uint8_t*>(password.data()),
-                 static_cast<uint32_t>(password.size()), salt.data(),
-                 static_cast<uint32_t>(salt.size()));
+  crypto_argon2(key.data(), static_cast<uint32_t>(key.size()),
+                work_area.data(), config, inputs, extras);
   util::wipe_memory(work_area.data(), work_area.size());
   return key;
 }
