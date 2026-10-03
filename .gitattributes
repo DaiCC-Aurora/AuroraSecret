@@ -1,0 +1,8 @@
+# The repository stores text files with LF endings on every platform.
+* text=auto eol=lf
+
+# Archives produced by the tool are binary.
+*.asf binary
+
+# Executables are binary.
+*.exe binary
